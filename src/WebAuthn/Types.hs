@@ -153,6 +153,8 @@ instance ToJSON Origin where
 data RelyingParty = RelyingParty
   { rpOrigin :: Origin
   , rpId :: Text
+  , rpAllowSelfAttestation :: Bool
+  , rpAllowNoAttestation :: Bool
   , icon :: Maybe Base64ByteString
   , name :: Maybe Base64ByteString
   }
@@ -167,9 +169,8 @@ maybeToPair :: Text -> Maybe Base64ByteString -> [Pair]
 maybeToPair _ Nothing = []
 maybeToPair lbl (Just bs) = [lbl .= toJSON bs]
 
-
 defaultRelyingParty :: Origin -> RelyingParty
-defaultRelyingParty orig = RelyingParty orig (originHost orig) Nothing Nothing
+defaultRelyingParty orig = RelyingParty orig (originHost orig) False False Nothing Nothing
 
 instance FromJSON Origin where
   parseJSON = withText "Origin" $ \str -> case T.break (==':') str of

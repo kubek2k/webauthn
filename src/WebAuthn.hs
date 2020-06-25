@@ -107,8 +107,8 @@ data AttestationStatement = AF_Packed Packed.Stmt
   | AF_None
   deriving Show
 
-decodeAttestation :: CBOR.Decoder s AttestationObject
-decodeAttestation = do
+decodeAttestation :: Bool -> CBOR.Decoder s AttestationObject
+decodeAttestation allowNoAttestation = do
   m :: Map.Map Text CBOR.Term <- CBOR.decode
   CBOR.TString fmt <- maybe (fail "fmt") pure $ Map.lookup "fmt" m
   stmtTerm <- maybe (fail "stmt") pure $ Map.lookup "attStmt" m
@@ -117,6 +117,9 @@ decodeAttestation = do
     "packed" -> AF_Packed <$> Packed.decode stmtTerm
     "tpm" -> AF_TPM <$> TPM.decode stmtTerm
     "android-safetynet" -> AF_AndroidSafetyNet <$> Android.decode stmtTerm
+    "none" -> if allowNoAttestation 
+                 then pure AF_None 
+                 else fail "No attestation not allowed"
     _ -> fail $ "decodeAttestation: Unsupported format: " ++ show fmt
   CBOR.TBytes adRaw <- maybe (fail "authData") pure $ Map.lookup "authData" m
   return (AttestationObject fmt stmt adRaw)
@@ -145,17 +148,17 @@ registerCredential :: MonadIO m => X509.CertificateStore
   -> ByteString -- ^ clientDataJSON
   -> ByteString -- ^ attestationObject
   -> m (Either VerificationFailure AttestedCredentialData)
-registerCredential cs challenge (RelyingParty rpOrigin rpId _ _) tbi verificationRequired clientDataJSON attestationObjectBS = runExceptT $ do
+registerCredential cs challenge (RelyingParty rpOrigin rpId rpAllowSelfAttestation rpAllowNoAttestation _ _) tbi verificationRequired clientDataJSON attestationObjectBS = runExceptT $ do
   _ <- hoistEither runAttestationCheck
   attestationObject <- hoistEither $ either (Left . CBORDecodeError "registerCredential") (pure . snd)
-        $ CBOR.deserialiseFromBytes decodeAttestation
+        $ CBOR.deserialiseFromBytes (decodeAttestation rpAllowNoAttestation)
         $ BL.fromStrict 
         $ attestationObjectBS
   ad <- hoistEither $ extractAuthData attestationObject
     -- TODO: extensions here
   case (attStmt attestationObject) of
     AF_FIDO_U2F s -> hoistEither $ U2F.verify s ad clientDataHash
-    AF_Packed s -> hoistEither $ Packed.verify s ad (authData attestationObject) clientDataHash
+    AF_Packed s -> hoistEither $ Packed.verify s ad (authData attestationObject) clientDataHash rpAllowSelfAttestation
     AF_TPM s -> hoistEither $ TPM.verify s ad (authData attestationObject) clientDataHash
     AF_AndroidSafetyNet s -> Android.verify cs s (authData attestationObject) clientDataHash
     AF_None -> pure ()

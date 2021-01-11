@@ -34,6 +34,9 @@ verify :: Stmt
   -> Either VerificationFailure ()
 verify (Stmt alg sig x509 certInfo) _ad _adRaw _clientDataHash = do
   -- TODO Verify that the public key specified by the parameters and unique fields of pubArea is identical to the credentialPublicKey in the attestedCredentialData in authenticatorData.
+  -- TODO validate certInfo according to the spec
+  -- TODO make sure that attestation certificate meets requirements in 8.3.1 
+  -- TODO make sure that attestation certificate contains proper aaguid
   let pub = X509.certPubKey $ X509.getCertificate x509
   -- let attToBeSigned = adRaw <> BA.convert clientDataHash
   -- https://www.iana.org/assignments/cose/cose.xhtml#algorithms

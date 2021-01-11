@@ -112,6 +112,7 @@ decodeAttestation = do
   m :: Map.Map Text CBOR.Term <- CBOR.decode
   CBOR.TString fmt <- maybe (fail "fmt") pure $ Map.lookup "fmt" m
   stmtTerm <- maybe (fail "stmt") pure $ Map.lookup "attStmt" m
+  -- 7.1.18
   stmt <- case fmt of
     "fido-u2f" -> maybe (fail "fido-u2f") (pure . AF_FIDO_U2F) $ U2F.decode stmtTerm
     "packed" -> AF_Packed <$> Packed.decode stmtTerm
@@ -146,32 +147,51 @@ registerCredential :: MonadIO m => X509.CertificateStore
   -> ByteString -- ^ attestationObject
   -> m (Either VerificationFailure AttestedCredentialData)
 registerCredential cs challenge (RelyingParty rpOrigin rpId _ _) tbi verificationRequired clientDataJSON attestationObjectBS = runExceptT $ do
+  -- 7.1.6 to 7.1.10
   _ <- hoistEither runAttestationCheck
   attestationObject <- hoistEither $ either (Left . CBORDecodeError "registerCredential") (pure . snd)
         $ CBOR.deserialiseFromBytes decodeAttestation
         $ BL.fromStrict 
         $ attestationObjectBS
   ad <- hoistEither $ extractAuthData attestationObject
-    -- TODO: extensions here
+  -- TODO: add public key parameters check 7.1.16
+  -- TODO: extensions here (7.1.17)
+  -- 7.1.18 done as a part of decoding
   case (attStmt attestationObject) of
+    -- 8.2
     AF_FIDO_U2F s -> hoistEither $ U2F.verify s ad clientDataHash
+    -- 8.3
     AF_Packed s -> hoistEither $ Packed.verify s ad (authData attestationObject) clientDataHash
     AF_TPM s -> hoistEither $ TPM.verify s ad (authData attestationObject) clientDataHash
+    -- TODO: implement Android Key attestation statement format (8.4)
+    -- 8.5
     AF_AndroidSafetyNet s -> Android.verify cs s (authData attestationObject) clientDataHash
+    -- 8.6
+    AF_FIDO_U2F s -> hoistEither $ U2F.verify s ad clientDataHash
+    -- 8.7
     AF_None -> pure ()
+    -- TODO implement Apple Anonymous Attestation Format (8.8)
     _ -> throwE (UnsupportedAttestationFormat (pack $ show (attStmt attestationObject)))
+
+  -- TODO add trust anchors verification (7.1.20)
 
   case attestedCredentialData ad of
     Nothing -> throwE MalformedAuthenticatorData
     Just c -> pure c
   where
+    -- 7.1.11
     clientDataHash = hash clientDataJSON :: Digest SHA256
     runAttestationCheck = do 
+      -- 7.1.6
       CollectedClientData{..} <- either
         (Left . JSONDecodeError) Right $ J.eitherDecode $ BL.fromStrict clientDataJSON
+      -- 7.1.7
       clientType == Create ?? InvalidType
+      -- 7.1.8
       challenge == clientChallenge ?? MismatchedChallenge
+      -- 7.1.9
       rpOrigin == clientOrigin ?? MismatchedOrigin
+      -- 7.1.10 but misses checking for Token Binding ID for the connection (whatever it is) FIXME
       case clientTokenBinding of
         TokenBindingUnsupported -> pure ()
         TokenBindingSupported -> pure ()
@@ -181,9 +201,13 @@ registerCredential cs challenge (RelyingParty rpOrigin rpId _ _) tbi verificatio
             | t == t' -> pure ()
             | otherwise -> Left MismatchedTokenBinding
     extractAuthData attestationObject = do
+      -- 7.1.12
       ad <- either (const $ Left MalformedAuthenticatorData) pure $ C.runGet parseAuthenticatorData (authData attestationObject)
+      -- 7.1.13
       hash (encodeUtf8 rpId) == rpIdHash ad ?? MismatchedRPID
+      -- 7.1.14
       userPresent ad ?? UserNotPresent
+      -- 7.1.15
       not verificationRequired || userVerified ad ?? UserUnverified
       pure ad
 

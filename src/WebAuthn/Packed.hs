@@ -36,12 +36,16 @@ verify :: Stmt
   -> Either VerificationFailure ()
 verify (Stmt _ sig cert) ad adRaw clientDataHash = do
   let dat = adRaw <> BA.convert clientDataHash
+  -- 8.2
   case cert of
     Just x509 -> do
       let pub = X509.certPubKey $ X509.getCertificate x509
       verifyX509Sig (X509.SignatureALG X509.HashSHA256 X509.PubKeyALG_EC) pub dat sig "Packed"
+      -- FIXME verify that certificate meets criteria stated in 8.2.1
+      -- FIXME verify that certificate has proper aaguid set under appropriate extension
     Nothing -> do
       pub <- case attestedCredentialData ad of
           Nothing -> Left MalformedAuthenticatorData
           Just c -> parsePublicKey $ credentialPublicKey c
+      -- FIXME verify that alg in AuthenticatorData matches the type of pub
       verifySig pub sig dat

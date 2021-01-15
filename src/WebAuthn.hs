@@ -222,19 +222,28 @@ verify :: Challenge
   -> CredentialPublicKey -- ^ public key
   -> Either VerificationFailure ()
 verify challenge rp tbi verificationRequired clientDataJSON adRaw sig pub = do
+  -- 7.2.11 - 7.2.14
   clientDataCheck Get challenge clientDataJSON rp tbi
-  let clientDataHash = hash clientDataJSON :: Digest SHA256
+  -- 7.2.15 - 7.2.17
   _ <- verifyAuthenticatorData rp adRaw verificationRequired
-  let dat = adRaw <> BA.convert clientDataHash
+  -- FIXME missing 7.2.18 - extensions support
+  -- 7.2.20
+  let clientDataHash = hash clientDataJSON :: Digest SHA256
+      dat = adRaw <> BA.convert clientDataHash
   pub' <- parsePublicKey pub
   verifySig pub' sig dat
+  -- FIXME missing 7.2.21 - signature count support 
 
 clientDataCheck :: WebAuthnType -> Challenge -> ByteString -> RelyingParty -> Maybe Text -> Either VerificationFailure ()
 clientDataCheck ctype challenge clientDataJSON rp tbi = do 
   ccd <-  first JSONDecodeError (J.eitherDecode $ BL.fromStrict clientDataJSON)
+  -- 7.2.11
   clientType ccd == ctype ?? InvalidType
+  -- 7.2.12
   challenge == clientChallenge ccd ?? MismatchedChallenge
+  -- 7.2.13
   rpOrigin rp == clientOrigin ccd ?? MismatchedOrigin
+  -- 7.2.14
   verifyClientTokenBinding tbi (clientTokenBinding ccd)
 
 verifyClientTokenBinding :: Maybe Text -> TokenBinding -> Either VerificationFailure ()
@@ -248,8 +257,11 @@ verifyClientTokenBinding _ _ = pure ()
 verifyAuthenticatorData :: RelyingParty -> ByteString -> Bool -> Either VerificationFailure AuthenticatorData
 verifyAuthenticatorData rp adRaw verificationRequired = do
   ad <- first (const MalformedAuthenticatorData) (C.runGet parseAuthenticatorData adRaw)
+  -- 7.2.15
   hash (encodeUtf8 $ rpId (rp :: RelyingParty)) == rpIdHash ad ?? MismatchedRPID
+  -- 7.2.16
   userPresent ad ?? UserNotPresent
+  -- 7.2.17
   not verificationRequired || userVerified ad ?? UserUnverified
   pure ad
 

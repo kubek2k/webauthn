@@ -191,7 +191,7 @@ registerCredential cs challenge (RelyingParty rpOrigin rpId _ _) tbi verificatio
       challenge == clientChallenge ?? MismatchedChallenge
       -- 7.1.9
       rpOrigin == clientOrigin ?? MismatchedOrigin
-      -- 7.1.10 but misses checking for Token Binding ID for the connection (whatever it is) FIXME
+      -- 7.1.10
       case clientTokenBinding of
         TokenBindingUnsupported -> pure ()
         TokenBindingSupported -> pure ()
@@ -199,6 +199,8 @@ registerCredential cs challenge (RelyingParty rpOrigin rpId _ _) tbi verificatio
           Nothing -> Left UnexpectedPresenceOfTokenBinding
           Just t'
             | t == t' -> pure ()
+            -- 7.1.10 apparently the check for match of TLS token binding is here,
+            -- just it relies on the user to pass the bound token
             | otherwise -> Left MismatchedTokenBinding
     extractAuthData attestationObject = do
       -- 7.1.12

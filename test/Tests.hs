@@ -45,6 +45,7 @@ androidTests = testGroup "WebAuthn Tests"
     , packedNonSelfAttestedTest
     , fidoU2FAttestedTest
     , registrationTest
+    , appleAttestedTest
   ]
 
 androidCredentialTest :: TestTree
@@ -138,6 +139,18 @@ fidoU2FAttestedKeyCredential = TestPublicKeyCredential
 
 fidoU2FAttestedTest = genericCredentialTest "FIDOU2F test" packedNonSelfAttestedKeyCredential
 
+appleAttestedKeyCredential = TestPublicKeyCredential 
+                              {
+                              clientDataJSON = BS.decodeLenient "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoia1duZEpCQUVuRjI2V1ltZ1k0Vl95ZF9XNXBjYW9Ya0hwMTlFalRiRkZ5ZyIsIm9yaWdpbiI6Imh0dHBzOi8vcHN0ZW5pdXN1YmkuZ2l0aHViLmlvIn0"
+                              , attestationObject = BS.decodeLenient "o2NmbXRlYXBwbGVnYXR0U3RtdKFjeDVjglkCSDCCAkQwggHJoAMCAQICBgF3qcxP1DAKBggqhkjOPQQDAjBIMRwwGgYDVQQDDBNBcHBsZSBXZWJBdXRobiBDQSAxMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9ybmlhMB4XDTIxMDIxNTA3NDQzNVoXDTIxMDIxODA3NDQzNVowgZExSTBHBgNVBAMMQDZiYjQ3YWQxOTc5ZDJhZGQ5OWU0ZjdjOTMzYTIxNjBjZGJhMmUwMGQ2MzRkZTdhYmFlNDgwZWU2MmEzZDIwNmExGjAYBgNVBAsMEUFBQSBDZXJ0aWZpY2F0aW9uMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9ybmlhMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEOuFzBAeS7KmjUIHlIbvYd87J29v02zn9Rle8uemPTbUaxbZNC5Z-lPiiLuq9k4J9n_bvVRbQH3habUCr04qEkqNVMFMwDAYDVR0TAQH_BAIwADAOBgNVHQ8BAf8EBAMCBPAwMwYJKoZIhvdjZAgCBCYwJKEiBCB32B8sDKmxQ2Uby2wKVEfk4Uh71fu9ppe_yF93m1tRiTAKBggqhkjOPQQDAgNpADBmAjEA-X6jtmXW42tx8Y_TbTzb35clECnk7jhc1vdlTzQIlV_D0z7ul8mPiKoOfy9mHcRjAjEAtuttnrqrYysCHWYIPmf9RfrKwyFdVW11dEf3Uw45qdqKfby2oIDybBIkmmzYQGI2WQI4MIICNDCCAbqgAwIBAgIQViVTlcen-0Dr4ijYJghTtjAKBggqhkjOPQQDAzBLMR8wHQYDVQQDDBZBcHBsZSBXZWJBdXRobiBSb290IENBMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9ybmlhMB4XDTIwMDMxODE4MzgwMVoXDTMwMDMxMzAwMDAwMFowSDEcMBoGA1UEAwwTQXBwbGUgV2ViQXV0aG4gQ0EgMTETMBEGA1UECgwKQXBwbGUgSW5jLjETMBEGA1UECAwKQ2FsaWZvcm5pYTB2MBAGByqGSM49AgEGBSuBBAAiA2IABIMuhy8mFJGBAiW59fzWu2N4tfVfP8sEW8c1mTR1_VSQRN-b_hkhF2XGmh3aBQs41FCDQBpDT7JNES1Ww-HPv8uYkf7AaWCBvvlsvHfIjd2vRqWu4d1RW1r6q5O-nAsmkaNmMGQwEgYDVR0TAQH_BAgwBgEB_wIBADAfBgNVHSMEGDAWgBQm12TZxXjCWmfRp95rEtAbY_HG1zAdBgNVHQ4EFgQU666CxP-hrFtR1M8kYQUAvmO9d4gwDgYDVR0PAQH_BAQDAgEGMAoGCCqGSM49BAMDA2gAMGUCMQDdixo0gaX62du052V7hB4UTCe3W4dqQYbCsUdXUDNyJ-_lVEV-9kiVDGMuXEg-cMECMCyKYETcIB_P5ZvDTSkwwUh4Udlg7Wp18etKyr44zSW4l9DIBb7wx_eLB6VxxugOB2hhdXRoRGF0YViYLNeTz6C0GMu_DqhSIoYH2el7Mz1NsKQQF3Zq9ruMdVFFAAAAAAAAAAAAAAAAAAAAAAAAAAAAFGWtVFyLmezcjN-EL7E8fkC510wspQECAyYgASFYIDrhcwQHkuypo1CB5SG72HfOydvb9Ns5_UZXvLnpj021IlggGsW2TQuWfpT4oi7qvZOCfZ_271UW0B94Wm1Aq9OKhJI"
+                              , challenge = Challenge (BS.decodeLenient "kWndJBAEnF26WYmgY4V_yd_W5pcaoXkHp19EjTbFFyg") 
+                              , getChallenge = Challenge (BS.decodeLenient "0J5LqMQzynQjBXPT-apctWIVK_210oqMBvbe7PAXrY4")
+                              , getClientDataJSON = BS.decodeLenient "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiMEo1THFNUXp5blFqQlhQVC1hcGN0V0lWS18yMTBvcU1CdmJlN1BBWHJZNCIsIm9yaWdpbiI6Imh0dHBzOi8vcHN0ZW5pdXN1YmkuZ2l0aHViLmlvIn0"
+                              , getAuthenticatorData = BS.decodeLenient "LNeTz6C0GMu_DqhSIoYH2el7Mz1NsKQQF3Zq9ruMdVEFAAAAAA"
+                              , getSignature = BS.decodeLenient "MEUCIQCwnE1Bmsmu1qPLmcZfYBE2B_mQhawjk6QcGTpOXSS5zQIgWgi5FD3aswNTFIg0zqG2sCg6mSSu-1VR7RQO7o1scsM"
+                              }
+
+appleAttestedTest = genericCredentialTest "Packed non-self attested test" packedNonSelfAttestedKeyCredential
 
 genericCredentialTest :: String -> TestPublicKeyCredential -> TestTree
 genericCredentialTest name TestPublicKeyCredential{..} = testCaseSteps name $ \step -> do
